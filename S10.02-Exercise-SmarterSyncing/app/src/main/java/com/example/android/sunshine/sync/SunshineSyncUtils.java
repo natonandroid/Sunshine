@@ -17,18 +17,58 @@ package com.example.android.sunshine.sync;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+
+import com.example.android.sunshine.data.WeatherContract;
 
 
 public class SunshineSyncUtils {
 
-//  TODO (1) Declare a private static boolean field called sInitialized
+//   (1) Declare a private static boolean field called sInitialized
+    private static boolean sInitialized;
 
-    //  TODO (2) Create a synchronized public static void method called initialize
-    //  TODO (3) Only execute this method body if sInitialized is false
-    //  TODO (4) If the method body is executed, set sInitialized to true
-    //  TODO (5) Check to see if our weather ContentProvider is empty
-        //  TODO (6) If it is empty or we have a null Cursor, sync the weather now!
+    //   (2) Create a synchronized public static void method called initialize
+    //   (3) Only execute this method body if sInitialized is false
+    //   (4) If the method body is executed, set sInitialized to true
+    //   (5) Check to see if our weather ContentProvider is empty
+    //   (6) If it is empty or we have a null Cursor, sync the weather now!
+
+    synchronized public static void initialize(final Context context){
+        if (!sInitialized){
+            sInitialized = true;
+
+
+
+            new AsyncTask<Void, Void, Void>() {
+                @Override
+               public Void doInBackground(Void... voids) {
+                    boolean isContentProviderEmpty = false;
+
+                    String[] weatherIdColumns = {WeatherContract.WeatherEntry._ID};
+                    String todaySelectionStatement = WeatherContract.WeatherEntry.getSqlSelectForTodayOnwards();
+
+                    Cursor cursor = context.getContentResolver().query(
+                            WeatherContract.WeatherEntry.CONTENT_URI,
+                            weatherIdColumns,
+                            todaySelectionStatement,
+                            null,
+                            null);
+                    isContentProviderEmpty = cursor == null || cursor.getCount() == 0;
+
+                    if ( cursor != null )
+                        cursor.close();
+
+                    if (isContentProviderEmpty) {
+                        startImmediateSync(context);
+                    }
+                    return null;
+                }
+            }.execute();
+        }
+    }
+
 
     /**
      * Helper method to perform a sync immediately using an IntentService for asynchronous
